@@ -1,0 +1,589 @@
+"""
+DCCP world-model rollout assembly
+
+本文件负责将 nominal imagined rollout、decision-sensitive state mining、
+counterfactual branch construction 和 high-margin preference construction 串联起来
+
+该模块输出固定字段的 pref_* batch
+这些字段用于后续计算 DCCP 的 local DPO-style preference loss
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Callable, Optional
+
+import json
+import os
+
+import numpy as np
+
+from verl.utils.dccp_branching import (
+    DCCPActionCandidate,
+    DCCPBranchingConfig,
+    DCCPScoredBranchSet,
+    build_and_score_counterfactual_branches,
+    build_candidate_action_set,
+    validate_candidate_set,
+)
+from verl.utils.dccp_mining import (
+    DCCPMiningConfig,
+    DCCPMiningResult,
+    mine_decision_sensitive_states,
+    summarize_mining_result,
+)
+from verl.utils.dccp_preferences import (
+    DCCPPreferenceConfig,
+    DCCPPreferencePair,
+    build_high_margin_preferences,
+    flatten_preference_results,
+    pack_preference_batch_by_rollout,
+    summarize_preference_pairs,
+)
+from verl.utils.dccp_schema import PREF_KEYS
+from verl.utils.dccp_scorer import DCCPScorer
+
+
+def _dccp_verbose_enabled() -> bool:
+    return os.environ.get("DCCP_VERBOSE_LOG", "0").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _dccp_jsonable(value: Any):
+    if isinstance(value, np.ndarray):
+        return _dccp_jsonable(value.tolist())
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, dict):
+        return {str(key): _dccp_jsonable(val) for key, val in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_dccp_jsonable(item) for item in value]
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    if hasattr(value, "shape"):
+        return {"shape": dccp_shape(value)}
+    return str(value)
+
+
+def dccp_shape(value: Any) -> list[int] | None:
+    shape = getattr(value, "shape", None)
+    if shape is None:
+        return None
+    return [int(dim) for dim in tuple(shape)]
+
+
+def dccp_round(value: Any, ndigits: int = 4):
+    return round(float(value), ndigits)
+
+
+def dccp_round_list(values: Any, ndigits: int = 4, limit: int | None = None) -> list[float]:
+    array = np.asarray(values, dtype=np.float32).reshape(-1)
+    if limit is not None:
+        array = array[: int(limit)]
+    return [round(float(item), ndigits) for item in array.tolist()]
+
+
+def dccp_verbose_log(event: str, **payload: Any) -> None:
+    if not _dccp_verbose_enabled():
+        return
+
+    record = {"event": str(event), **_dccp_jsonable(payload)}
+    message = json.dumps(record, ensure_ascii=False, sort_keys=True)
+    print(f"[dccp-verbose] {message}", flush=True)
+
+    jsonl_path = os.environ.get("DCCP_VERBOSE_JSONL", "").strip()
+    if jsonl_path:
+        jsonl_dir = os.path.dirname(jsonl_path)
+        if jsonl_dir:
+            os.makedirs(jsonl_dir, exist_ok=True)
+        with open(jsonl_path, "a", encoding="utf-8") as f:
+            f.write(message + "\n")
+
+
+def _dccp_mining_rows(result: DCCPMiningResult) -> list[dict[str, Any]]:
+    if result.valid_start_indices is None:
+        frame_indices = np.arange(len(result.progress_scores), dtype=np.int64)
+    else:
+        frame_indices = np.asarray(result.valid_start_indices, dtype=np.int64).reshape(-1)
+
+    rows = []
+    for local_idx in range(len(result.progress_scores)):
+        rows.append(
+            {
+                "local_idx": int(local_idx),
+                "frame_index": int(frame_indices[local_idx]) if local_idx < len(frame_indices) else int(local_idx),
+                "progress": dccp_round(result.progress_scores[local_idx]),
+                "curvature": dccp_round(result.curvature_scores[local_idx]),
+                "entropy": dccp_round(result.entropy_scores[local_idx]),
+                "decision": dccp_round(result.decision_scores[local_idx]),
+                "valid": bool(result.valid_mask[local_idx]),
+            }
+        )
+    return rows
+
+
+@dataclass
+class DCCPRolloutConfig:
+    """Hyperparameters for DCCP rollout-side preference construction"""
+
+    mining: DCCPMiningConfig = field(default_factory=DCCPMiningConfig)
+    branching: DCCPBranchingConfig = field(default_factory=DCCPBranchingConfig)
+    preference: DCCPPreferenceConfig = field(default_factory=DCCPPreferenceConfig)
+
+    max_pairs_per_rollout: int = 4
+    max_pairs_per_batch: int = 64
+    require_completion_score: bool = True
+
+
+@dataclass
+class DCCPNominalStep:
+    """One decision step in a nominal imagined rollout"""
+
+    state_index: int
+
+    context: dict[str, Any]
+    state_context: Any
+
+    response_tokens: Any
+    action_for_world_model: Any
+    response_mask: Any
+
+    action_token_logits: Optional[Any] = None
+    entropy_score: Optional[float] = None
+
+    generation_logprob: Optional[float] = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class DCCPNominalRollout:
+    """One nominal imagined rollout generated by old policy and world model"""
+
+    rollout_id: str
+    instruction: str
+    video: Any
+    steps: list[DCCPNominalStep]
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class DCCPRolloutPreferenceResult:
+    """DCCP preference construction result for one nominal imagined rollout"""
+
+    rollout_id: str
+    completion_score: Optional[int]
+    mining_result: DCCPMiningResult
+    scored_branch_sets: list[DCCPScoredBranchSet]
+    preference_pairs: list[DCCPPreferencePair]
+    metrics: dict[str, float]
+
+
+AlternativeActionSamplerFn = Callable[
+    [DCCPNominalRollout, DCCPNominalStep, int],
+    tuple[list[Any], list[Any], Optional[list[Optional[float]]], Optional[list[dict[str, Any]]]],
+]
+
+CounterfactualBranchRolloutFn = Callable[
+    [Any, DCCPActionCandidate, int, Optional[dict[str, Any]]],
+    Any,
+]
+
+ReferenceGapFn = Callable[
+    [dict[str, Any], DCCPActionCandidate, DCCPActionCandidate],
+    float,
+]
+
+
+class DCCPWorldModelRolloutAssembler:
+    """Assemble DCCP preference batches from nominal imagined rollouts"""
+
+    def __init__(
+        self,
+        scorer: DCCPScorer,
+        config: DCCPRolloutConfig,
+        sample_alternative_actions_fn: AlternativeActionSamplerFn,
+        rollout_counterfactual_branch_fn: CounterfactualBranchRolloutFn,
+        reference_gap_fn: ReferenceGapFn,
+    ):
+        self.scorer = scorer
+        self.config = config
+        self.sample_alternative_actions_fn = sample_alternative_actions_fn
+        self.rollout_counterfactual_branch_fn = rollout_counterfactual_branch_fn
+        self.reference_gap_fn = reference_gap_fn
+
+    def build_preferences_for_rollout(
+        self,
+        nominal_rollout: DCCPNominalRollout,
+    ) -> DCCPRolloutPreferenceResult:
+        """对一条 nominal imagined rollout 构造 DCCP preference pairs"""
+        completion_score = None
+
+        decision_indices = [
+            int(step.state_index)
+            for step in nominal_rollout.steps
+        ]
+        dccp_verbose_log(
+            "rollout_mining_start",
+            rollout_id=nominal_rollout.rollout_id,
+            video_shape=dccp_shape(nominal_rollout.video),
+            num_video_frames=int(nominal_rollout.video.shape[0]) if hasattr(nominal_rollout.video, "shape") else len(nominal_rollout.video),
+            num_decision_steps=len(decision_indices),
+            decision_frame_indices=decision_indices,
+            horizon_H=int(self.config.mining.horizon_H),
+            frames_per_action=int(self.config.mining.frames_per_action),
+            state_budget_per_traj=int(self.config.mining.state_budget_per_traj),
+            nms_gap=int(self.config.mining.nms_gap),
+        )
+
+        if self.config.require_completion_score:
+            completion_score = self.scorer.score_trajectory_completion(
+                rollout_video=nominal_rollout.video,
+                instruction=nominal_rollout.instruction,
+                metadata={
+                    "rollout_id": nominal_rollout.rollout_id,
+                    "score_type": "trajectory_completion",
+                    **dict(nominal_rollout.metadata),
+                },
+            )
+
+        dccp_verbose_log(
+            "rollout_completion_score",
+            rollout_id=nominal_rollout.rollout_id,
+            completion_score=completion_score,
+        )
+
+        entropy_scores = self._collect_entropy_scores(nominal_rollout)
+
+        mining_result = mine_decision_sensitive_states(
+            rollout_video=nominal_rollout.video,
+            instruction=nominal_rollout.instruction,
+            scorer=self.scorer,
+            entropy_scores=entropy_scores,
+            config=self.config.mining,
+            decision_indices=decision_indices,
+            metadata={
+                "rollout_id": nominal_rollout.rollout_id,
+                **dict(nominal_rollout.metadata),
+            },
+        )
+
+        selected_state_rows = [
+            {
+                "frame_index": int(state.index),
+                "decision_score": dccp_round(state.decision_score),
+                "progress_score": dccp_round(state.progress_score),
+                "curvature_score": dccp_round(state.curvature_score),
+                "entropy_score": dccp_round(state.entropy_score),
+            }
+            for state in mining_result.selected_states
+        ]
+        dccp_verbose_log(
+            "mining_result",
+            rollout_id=nominal_rollout.rollout_id,
+            mining_rows=_dccp_mining_rows(mining_result),
+            selected_states=selected_state_rows,
+        )
+
+        scored_branch_sets: list[DCCPScoredBranchSet] = []
+        preference_build_results = []
+
+        step_by_index = {int(step.state_index): step for step in nominal_rollout.steps}
+
+        for selected_state in mining_result.selected_states:
+            state_index = int(selected_state.index)
+
+            if state_index not in step_by_index:
+                dccp_verbose_log(
+                    "selected_state_missing_step",
+                    rollout_id=nominal_rollout.rollout_id,
+                    state_index=state_index,
+                )
+                continue
+
+            nominal_step = step_by_index[state_index]
+            dccp_verbose_log(
+                "selected_state_start",
+                rollout_id=nominal_rollout.rollout_id,
+                state_index=state_index,
+                frame_index=int(nominal_step.metadata.get("frame_index", state_index)),
+                decision_score=dccp_round(selected_state.decision_score),
+                progress_score=dccp_round(selected_state.progress_score),
+                curvature_score=dccp_round(selected_state.curvature_score),
+                entropy_score=dccp_round(selected_state.entropy_score),
+            )
+
+            alternative_responses, alternative_actions, alternative_logprobs, alternative_metadata = (
+                self.sample_alternative_actions_fn(
+                    nominal_rollout,
+                    nominal_step,
+                    int(self.config.branching.num_candidates) - 1,
+                )
+            )
+
+            candidates = build_candidate_action_set(
+                nominal_response_tokens=nominal_step.response_tokens,
+                nominal_action_for_world_model=nominal_step.action_for_world_model,
+                alternative_response_tokens=alternative_responses,
+                alternative_actions_for_world_model=alternative_actions,
+                config=self.config.branching,
+                nominal_generation_logprob=nominal_step.generation_logprob,
+                alternative_generation_logprobs=alternative_logprobs,
+                nominal_metadata=nominal_step.metadata,
+                alternative_metadata=alternative_metadata,
+            )
+
+            validate_candidate_set(candidates)
+            dccp_verbose_log(
+                "candidate_set",
+                rollout_id=nominal_rollout.rollout_id,
+                state_index=state_index,
+                num_candidates=len(candidates),
+                candidate_indices=[int(candidate.candidate_index) for candidate in candidates],
+            )
+
+            scored_branch_set = build_and_score_counterfactual_branches(
+                state_index=state_index,
+                state_context=nominal_step.state_context,
+                rollout_video=nominal_rollout.video,
+                candidates=candidates,
+                rollout_branch_fn=self.rollout_counterfactual_branch_fn,
+                instruction=nominal_rollout.instruction,
+                scorer=self.scorer,
+                config=self.config.branching,
+                rollout_metadata={
+                    "rollout_id": nominal_rollout.rollout_id,
+                    **dict(nominal_rollout.metadata),
+                },
+                score_metadata={
+                    "rollout_id": nominal_rollout.rollout_id,
+                    **dict(nominal_rollout.metadata),
+                },
+            )
+
+            scored_branch_sets.append(scored_branch_set)
+            dccp_verbose_log(
+                "branch_scores",
+                rollout_id=nominal_rollout.rollout_id,
+                state_index=state_index,
+                nominal_score=dccp_round(scored_branch_set.nominal_score),
+                alternative_scores=dccp_round_list(scored_branch_set.alternative_scores),
+                margins=dccp_round_list(scored_branch_set.margins_against_nominal()),
+                num_alternatives=len(scored_branch_set.alternative_scores),
+            )
+
+            preference_result = build_high_margin_preferences(
+                scored_branch_set=scored_branch_set,
+                context=nominal_step.context,
+                reference_gap_fn=self.reference_gap_fn,
+                config=self.config.preference,
+                entropy_score=float(selected_state.entropy_score),
+                curvature_score=float(selected_state.curvature_score),
+                metadata={
+                    "rollout_id": nominal_rollout.rollout_id,
+                    "state_index": state_index,
+                    **dict(nominal_step.metadata),
+                },
+            )
+
+            dccp_verbose_log(
+                "preference_pairs_for_state",
+                rollout_id=nominal_rollout.rollout_id,
+                state_index=state_index,
+                valid_pair_count=len(preference_result.pairs),
+                pairs=[
+                    {
+                        "candidate_index": int(pair.candidate_index),
+                        "winner_is_nominal": bool(pair.winner_candidate.is_nominal),
+                        "loser_is_nominal": bool(pair.loser_candidate.is_nominal),
+                        "margin_alt_minus_nominal": dccp_round(pair.margin),
+                        "weight_abs_margin": dccp_round(pair.weight),
+                        "delta_ref": dccp_round(pair.delta_ref),
+                        "nominal_score": dccp_round(pair.nominal_score),
+                        "alternative_score": dccp_round(pair.alternative_score),
+                    }
+                    for pair in preference_result.pairs
+                ],
+            )
+
+            preference_build_results.append(preference_result)
+
+        preference_pairs = flatten_preference_results(preference_build_results)
+
+        metrics = {}
+        metrics.update(summarize_mining_result(mining_result))
+        metrics.update(summarize_preference_pairs(preference_pairs))
+        metrics.update(self.scorer.metrics())
+
+        if completion_score is not None:
+            metrics["dccp/completion_score"] = float(completion_score)
+
+        dccp_verbose_log(
+            "rollout_preference_summary",
+            rollout_id=nominal_rollout.rollout_id,
+            completion_score=completion_score,
+            selected_state_count=len(mining_result.selected_states),
+            scored_branch_set_count=len(scored_branch_sets),
+            preference_pair_count=len(preference_pairs),
+            metrics={key: dccp_round(value) for key, value in metrics.items()},
+        )
+
+        return DCCPRolloutPreferenceResult(
+            rollout_id=nominal_rollout.rollout_id,
+            completion_score=completion_score,
+            mining_result=mining_result,
+            scored_branch_sets=scored_branch_sets,
+            preference_pairs=preference_pairs,
+            metrics=metrics,
+        )
+
+    def build_preference_batch(
+        self,
+        nominal_rollouts: list[DCCPNominalRollout],
+        padding_context: dict[str, Any],
+        padding_response_tokens: Any,
+        padding_response_mask: Any,
+    ) -> tuple[dict[str, Any], list[DCCPRolloutPreferenceResult], dict[str, float]]:
+        """对多条 nominal imagined rollouts 构造按 rollout 分组的 pref_* batch"""
+        rollout_results: list[DCCPRolloutPreferenceResult] = []
+        preference_pairs_by_rollout: list[list[DCCPPreferencePair]] = []
+
+        for nominal_rollout in nominal_rollouts:
+            result = self.build_preferences_for_rollout(nominal_rollout)
+            rollout_results.append(result)
+            preference_pairs_by_rollout.append(result.preference_pairs)
+
+        preference_pairs_by_rollout = _limit_pairs_per_batch(
+            preference_pairs_by_rollout=preference_pairs_by_rollout,
+            max_pairs_per_batch=int(self.config.max_pairs_per_batch),
+        )
+
+        batch = pack_preference_batch_by_rollout(
+            preference_pairs_by_rollout=preference_pairs_by_rollout,
+            max_pairs_per_rollout=int(self.config.max_pairs_per_rollout),
+            padding_context=padding_context,
+            padding_response_tokens=padding_response_tokens,
+            padding_response_mask=padding_response_mask,
+        )
+
+        metrics = self._aggregate_metrics(rollout_results, batch)
+
+        return batch, rollout_results, metrics
+
+    def _collect_entropy_scores(self, nominal_rollout: DCCPNominalRollout) -> np.ndarray:
+        """收集每个 decision step 的 action-token entropy"""
+        if len(nominal_rollout.steps) == 0:
+            return np.zeros((0,), dtype=np.float32)
+
+        max_index = max(int(step.state_index) for step in nominal_rollout.steps)
+        entropy_scores = np.zeros((max_index + 1,), dtype=np.float32)
+
+        for step in nominal_rollout.steps:
+            if step.entropy_score is None:
+                continue
+            entropy_scores[int(step.state_index)] = float(step.entropy_score)
+
+        return entropy_scores
+
+    @staticmethod
+    def _aggregate_metrics(
+        rollout_results: list[DCCPRolloutPreferenceResult],
+        batch: dict[str, Any],
+    ) -> dict[str, float]:
+        """聚合多条 rollout 的 DCCP 日志指标"""
+        metrics: dict[str, float] = {}
+
+        if len(rollout_results) == 0:
+            metrics["dccp/valid_pairs_rollout"] = 0.0
+            metrics["dccp/pref_density"] = 0.0
+            return metrics
+
+        metric_buckets: dict[str, list[float]] = {}
+
+        for result in rollout_results:
+            for key, value in result.metrics.items():
+                metric_buckets.setdefault(key, []).append(float(value))
+
+        for key, values in metric_buckets.items():
+            metrics[key] = float(np.mean(np.asarray(values, dtype=np.float32)))
+
+        valid = batch.get(PREF_KEYS.valid)
+
+        if valid is not None:
+            valid_array = _to_numpy_bool(valid)
+            metrics["dccp/valid_pairs_rollout"] = float(np.sum(valid_array))
+            metrics["dccp/pref_density"] = float(np.mean(valid_array)) if valid_array.size > 0 else 0.0
+
+        return metrics
+
+
+def make_empty_preference_batch(
+    batch_size: int,
+    max_pairs_per_rollout: int,
+    padding_context: dict[str, Any],
+    padding_response_tokens: Any,
+    padding_response_mask: Any,
+) -> dict[str, Any]:
+    """构造没有有效 preference pair 时的 padding batch"""
+    preference_pairs_by_rollout = [
+        []
+        for _ in range(int(batch_size))
+    ]
+
+    return pack_preference_batch_by_rollout(
+        preference_pairs_by_rollout=preference_pairs_by_rollout,
+        max_pairs_per_rollout=int(max_pairs_per_rollout),
+        padding_context=padding_context,
+        padding_response_tokens=padding_response_tokens,
+        padding_response_mask=padding_response_mask,
+    )
+
+
+def _to_numpy_bool(value: Any) -> np.ndarray:
+    """将 tensor 或 array 转成 bool numpy array"""
+    try:
+        import torch
+
+        if isinstance(value, torch.Tensor):
+            return value.detach().cpu().numpy().astype(bool)
+    except ImportError:
+        pass
+
+    return np.asarray(value).astype(bool)
+
+
+def _limit_pairs_per_batch(
+    preference_pairs_by_rollout: list[list[DCCPPreferencePair]],
+    max_pairs_per_batch: int,
+) -> list[list[DCCPPreferencePair]]:
+    """Keep the top weighted DCCP pairs across the whole rollout batch."""
+    max_pairs_per_batch = int(max_pairs_per_batch)
+    if max_pairs_per_batch <= 0:
+        return [[] for _ in preference_pairs_by_rollout]
+
+    indexed_pairs = []
+    for rollout_idx, rollout_pairs in enumerate(preference_pairs_by_rollout):
+        for pair_idx, pair in enumerate(rollout_pairs):
+            indexed_pairs.append((rollout_idx, pair_idx, pair))
+
+    if len(indexed_pairs) <= max_pairs_per_batch:
+        return preference_pairs_by_rollout
+
+    indexed_pairs = sorted(
+        indexed_pairs,
+        key=lambda item: (-float(item[2].weight), int(item[2].state_index), int(item[2].candidate_index)),
+    )
+    kept = {
+        (rollout_idx, pair_idx)
+        for rollout_idx, pair_idx, _ in indexed_pairs[:max_pairs_per_batch]
+    }
+
+    limited: list[list[DCCPPreferencePair]] = []
+    for rollout_idx, rollout_pairs in enumerate(preference_pairs_by_rollout):
+        limited.append(
+            [
+                pair
+                for pair_idx, pair in enumerate(rollout_pairs)
+                if (rollout_idx, pair_idx) in kept
+            ]
+        )
+
+    return limited

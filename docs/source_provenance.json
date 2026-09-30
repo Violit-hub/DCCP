@@ -1,0 +1,43 @@
+{
+  "source_git_commit": "37e2d9247315b9aa46274e619502c5ae2f8b4d17",
+  "source_working_tree_changes_included": true,
+  "snapshot_capture_date": "2026-09-30",
+  "critical_files_match_training_script_target": true,
+  "additional_packaging_metadata_source": "OpenVLA-OFT pyproject.toml from the sibling WMPO checkout",
+  "personal_or_unused_files_excluded": [
+    "dccp/align.json",
+    "dccp/command.md",
+    "dccp/compute_cost_comparison.md",
+    "dccp/launch_head.sh",
+    "dccp/launch_worker.sh",
+    "dccp/readwo.md",
+    "dccp/\u670d\u52a1\u8f6c\u53d1.md",
+    "dccp/dependencies/openvla-oft/train_coffee.sh"
+  ],
+  "portable_or_sanitized_files": [
+    "assets/coffee/data_files/core_train_configs/bc_rnn_image_ds_coffee_D0_seed_101.json",
+    "assets/world_model_configs/coffee/train_mimicgen_cfg.py",
+    "dccp/README.md",
+    "dccp/experiments/branch_validity_audit/README.md",
+    "dccp/experiments/branch_validity_audit/run_coffee.sh",
+    "dccp/experiments/branch_validity_audit/branch_audit/config.py",
+    "dccp/experiments/branch_validity_audit/configs/coffee_smoke.yaml",
+    "dccp/experiments/branch_validity_audit/configs/coffee_tiny.yaml",
+    "dccp/experiments/state_selection_audit/README.md",
+    "dccp/experiments/state_selection_audit/run_coffee_fixed_oracle_25seeds.sh",
+    "dccp/experiments/state_selection_audit/run_coffee_one_traj_full.sh",
+    "dccp/experiments/state_selection_audit/run_coffee_one_traj_v2.sh",
+    "dccp/experiments/state_selection_audit/run_coffee_smoke.sh",
+    "dccp/experiments/state_selection_audit/start_progress_server.sh",
+    "dccp/experiments/state_selection_audit/configs/coffee_fixed_oracle_s3_s6_25seeds_v1.yaml",
+    "dccp/experiments/state_selection_audit/configs/coffee_one_traj.yaml",
+    "dccp/experiments/state_selection_audit/configs/coffee_one_traj_v2.yaml",
+    "dccp/experiments/state_selection_audit/configs/coffee_smoke.yaml",
+    "dccp/experiments/state_selection_audit/configs/coffee_tiny.yaml",
+    "dccp/experiments/state_selection_audit/state_audit/config.py",
+    "dccp/offline_dccp_smoke/README.md",
+    "dccp/offline_dccp_smoke/run_offline_staged_smoke.sh",
+    "dccp/verl/trainer/config/ppo_trainer.yaml"
+  ],
+  "models_and_large_training_datasets_included": false
+}

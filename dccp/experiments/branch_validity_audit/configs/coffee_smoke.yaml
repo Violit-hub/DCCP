@@ -1,0 +1,76 @@
+task: coffee
+run_name: coffee_branch_validity_smoke_v1
+
+paths:
+  dccp_root: /path/to/DCCP
+  # Complete state_selection_audit first; this run supplies real restorable states only.
+  source_state_run: /path/to/DCCP/dccp/outputs/state_selection_audit/coffee_smoke_v1
+  source_state_config: /path/to/DCCP/dccp/experiments/state_selection_audit/configs/coffee_smoke.yaml
+  policy_checkpoint: /path/to/assets/SFT_models/coffee
+  dataset_config: /path/to/assets/data_files/core_train_configs/bc_rnn_image_ds_coffee_D0_seed_101.json
+  progress_lrm_config: /path/to/DCCP/dccp/configs/dccp_lrm.yaml
+  wm_inference_config: /path/to/assets/world_models/coffee/P_128/inference_cfg.py
+  output_root: /path/to/DCCP/dccp/outputs/branch_validity_audit
+  mujoco_path: /path/to/mujoco210
+
+states:
+  selection_method: joint
+  max_states: 2
+  targets: []
+
+policy:
+  unnorm_key: coffee_d0_300_demos
+  instruction: coffee
+  dtype: bfloat16
+  device: cuda:0
+  center_crop: true
+  action_chunk_length: 8
+  action_dim: 7
+  nominal_do_sample: true
+  nominal_temperature: 1.6
+  candidate_temperature: 1.0
+  candidate_max_attempts: 64
+
+candidates:
+  total_candidates: 8
+  seed: 1701
+  # false matches the current DCCP sampler; true is a cleaner diversity diagnostic.
+  deduplicate: false
+
+world_model:
+  device: cuda:0
+  dtype: bfloat16
+  horizon_H: 3
+  queue_len: 4
+  seeds: [401, 402, 403]
+  # controlled shares diffusion noise across candidates; faithful uses independent noise.
+  mode: controlled
+  fps: 12
+  save_npz: true
+  save_video: true
+
+preferences:
+  margin_pos: 0.10
+  margin_neg: 0.10
+  max_pairs_per_state: null
+  label_aggregation: primary_seed
+
+simulator:
+  num_steps_wait: 10
+  max_low_level_steps: 256
+  success_reward_threshold: 0.0
+  camera_key: agentview_image
+  evaluation_seeds: [101, 202, 303]
+  save_video: true
+  video_fps: 20
+
+metrics:
+  bootstrap_samples: 2000
+  bootstrap_seed: 90210
+  actual_gap_epsilon: 1.0e-9
+
+runtime:
+  gpu_memory_threshold_mib: 4096
+  skip_gpu_stages_when_busy: true
+  progress_health_timeout_sec: 5.0
+  resume: true

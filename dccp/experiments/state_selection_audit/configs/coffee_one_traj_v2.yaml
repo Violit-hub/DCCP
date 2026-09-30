@@ -1,0 +1,58 @@
+# 第二条 Coffee 独立复现实验：同一初始状态，更新策略采样、候选与评估种子。
+task: coffee
+run_name: coffee_one_traj_v2
+
+paths:
+  dccp_root: /path/to/DCCP
+  policy_checkpoint: /path/to/assets/SFT_models/coffee
+  dataset_config: /path/to/assets/data_files/core_train_configs/bc_rnn_image_ds_coffee_D0_seed_101.json
+  initial_states: /path/to/DCCP/WMPO/verl/utils/dataset/coffee_d0_states.pkl
+  progress_lrm_config: /path/to/DCCP/dccp/configs/dccp_lrm.yaml
+  output_root: /path/to/DCCP/dccp/outputs/state_selection_audit
+  mujoco_path: /path/to/mujoco210
+
+policy:
+  unnorm_key: coffee_d0_300_demos
+  instruction: coffee
+  dtype: bfloat16
+  device: cuda:0
+  center_crop: true
+  action_chunk_length: 8
+  action_dim: 7
+  nominal_do_sample: true
+  nominal_temperature: 1.6
+  candidate_temperature: 1.0
+  candidate_max_attempts: 64
+
+simulator:
+  num_steps_wait: 10
+  max_low_level_steps: 256
+  success_reward_threshold: 0.0
+  camera_key: agentview_image
+  image_checksum_atol: 0.0
+  simulator_state_atol: 1.0e-10
+
+selection:
+  horizon_H: 3
+  state_budget: 2
+  nms_gap: 2
+  lambda_curvature: 1.0
+  lambda_entropy: 1.0
+  random_draws: 1000
+
+pilot:
+  num_trajectories: 1
+  total_candidates: 8
+  candidate_seed: 2701
+  nominal_seeds: [29]
+  evaluation_seeds: [404, 505, 606]
+  bootstrap_samples: 2000
+  # 仅对仓库内已知来源的初始状态文件开启；不要替换为未知 pickle。
+  trust_initial_states_pickle: true
+  resume: true
+
+runtime:
+  gpu_memory_threshold_mib: 4096
+  allow_existing_gpu_processes_below_threshold: false
+  skip_gpu_tests_when_busy: true
+  progress_health_timeout_sec: 5.0

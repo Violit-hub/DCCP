@@ -1,0 +1,23 @@
+{
+  "torch": "2.5.1+cu124",
+  "transformers": "4.40.1",
+  "peft": "0.11.0",
+  "ray": "2.54.1",
+  "numpy": "1.26.4",
+  "hydra-core": "1.3.2",
+  "omegaconf": "2.3.0",
+  "flash-attn": "2.7.4.post1",
+  "tensordict": "0.12.1",
+  "pytest": "9.1.0",
+  "torchvision": "0.20.1+cu124",
+  "accelerate": "1.13.0",
+  "requests": "2.33.1",
+  "Pillow": "12.1.1",
+  "imageio": "2.37.3",
+  "robosuite": "1.4.1",
+  "robomimic": "0.3.0",
+  "mimicgen": "1.0.0",
+  "opensora": "1.2.0",
+  "tensorboard": "2.19.0",
+  "torchdata": "0.11.0"
+}
