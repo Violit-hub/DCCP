@@ -3,7 +3,7 @@
   "source_working_tree_changes_included": true,
   "snapshot_capture_date": "2026-09-30",
   "critical_files_match_training_script_target": true,
-  "additional_packaging_metadata_source": "OpenVLA-OFT pyproject.toml from the sibling WMPO checkout",
+  "additional_packaging_metadata_source": "OpenVLA-OFT pyproject.toml from the sibling OpenVLA-OFT checkout",
   "personal_or_unused_files_excluded": [
     "dccp/align.json",
     "dccp/command.md",

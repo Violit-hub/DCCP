@@ -2,7 +2,7 @@
 
 这个目录实现一个与训练流程完全分离的小规模实验：检查曲率、动作不确定性及二者联合选择的两个时刻，是否比随机时刻具有更大的真实动作改善空间。
 
-本实现只新增 `dccp/experiments/state_selection_audit/`。它不修改 `verl`、WMPO、训练配置、`install.sh` 或已有 checkpoint；策略只以 `eval()`/`inference_mode()` 加载，不创建 optimizer。真实标签来自 robosuite/MuJoCo 分支回放，不使用世界模型。
+本实现只新增 `dccp/experiments/state_selection_audit/`。它不修改 `verl`、训练配置、`install.sh` 或已有 checkpoint；策略只以 `eval()`/`inference_mode()` 加载，不创建 optimizer。真实标签来自 robosuite/MuJoCo 分支回放，不使用世界模型。
 
 ## 两套规模
 
@@ -37,17 +37,17 @@ post-hoc 稳定性检查，不应作为无偏的状态选择结果。本实验�
 - DCCP 已有的 progress 曲率、归一化、local maxima 和 temporal NMS；
 - DCCP 的 256 个 action-token masked entropy。
 
-运行入口、配置、产物 schema、统计和测试都留在本目录。训练代码升级时只需检查 adapter，不会把一次性审计逻辑混入 PPO/WMPO 主循环。
+运行入口、配置、产物 schema、统计和测试都留在本目录。训练代码升级时只需检查 adapter，不会把一次性审计逻辑混入 DCCP 训练主循环。
 
 ## 环境与路径
 
 VLA 和模拟器阶段固定使用：
 
 ```bash
-/path/to/conda_envs/wmpo_env/bin/python
+/path/to/conda_envs/dccp_env/bin/python
 ```
 
-代码从 `/path/to/DCCP/dccp` 导入，模型、数据、MuJoCo 和输出路径都写在 YAML 中。入口会设置 MuJoCo、NVIDIA 动态库和 `PYTHONPATH`，无需修改 `.bashrc`，也不会改变 `wmpo_env` 中的 `-e` 安装。
+代码从 `/path/to/DCCP/dccp` 导入，模型、数据、MuJoCo 和输出路径都写在 YAML 中。入口会设置 MuJoCo、NVIDIA 动态库和 `PYTHONPATH`，无需修改 `.bashrc`，也不会改变 `dccp_env` 中的 `-e` 安装。
 
 初始状态是项目已有的 pickle。配置中的 `trust_initial_states_pickle: true` 只表示信任这个确定路径；不要替换成来源未知的 pickle。
 
@@ -228,10 +228,10 @@ curl --noproxy '*' http://127.0.0.1:8002/health
 ## 测试
 
 ```bash
-/path/to/conda_envs/wmpo_env/bin/python -m pytest -q \
+/path/to/conda_envs/dccp_env/bin/python -m pytest -q \
   /path/to/DCCP/dccp/experiments/state_selection_audit/tests
 
-/path/to/conda_envs/wmpo_env/bin/python -m compileall -q \
+/path/to/conda_envs/dccp_env/bin/python -m compileall -q \
   /path/to/DCCP/dccp/experiments/state_selection_audit
 ```
 

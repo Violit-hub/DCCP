@@ -4,7 +4,7 @@ set -euo pipefail
 umask 002
 
 AUDIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PYTHON_BIN="${WMPO_PYTHON:-/path/to/conda_envs/wmpo_env/bin/python}"
+PYTHON_BIN="${DCCP_PYTHON:-python}"
 CONFIG="${AUDIT_CONFIG:-${AUDIT_ROOT}/configs/coffee_smoke.yaml}"
 STAGE="${1:-}"
 if [[ $# -gt 0 ]]; then shift; fi

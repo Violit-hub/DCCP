@@ -5,7 +5,7 @@ paths:
   dccp_root: /path/to/DCCP
   policy_checkpoint: /path/to/assets/SFT_models/coffee
   dataset_config: /path/to/assets/data_files/core_train_configs/bc_rnn_image_ds_coffee_D0_seed_101.json
-  initial_states: /path/to/DCCP/WMPO/verl/utils/dataset/coffee_d0_states.pkl
+  initial_states: /path/to/DCCP/dccp/verl/utils/dataset/back/coffee_d0_states.pkl
   progress_lrm_config: /path/to/DCCP/dccp/configs/dccp_lrm.yaml
   output_root: /path/to/DCCP/dccp/outputs/state_selection_audit
   mujoco_path: /path/to/mujoco210

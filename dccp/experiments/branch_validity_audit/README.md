@@ -123,6 +123,6 @@ tiny 通过后改用 `configs/coffee_smoke.yaml`：2 个状态、每状态 8 个
 ## CPU 测试
 
 ```bash
-/path/to/conda_envs/wmpo_env/bin/python -m pytest -q \
+/path/to/conda_envs/dccp_env/bin/python -m pytest -q \
   /path/to/DCCP/dccp/experiments/branch_validity_audit/tests
 ```

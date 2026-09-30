@@ -2,7 +2,7 @@
 
 **Decision-Centric Counterfactual Preference Optimization for Vision-Language-Action Post-Training**
 
-DCCP extends the WMPO imagined-rollout pipeline with local action preferences. It mines decision-sensitive states using progress curvature and action-token entropy, compares short counterfactual branches under the same prefix, and combines a local DPO-style preference loss with trajectory-level GRPO.
+DCCP constructs local action preferences from imagined rollouts. It mines decision-sensitive states using progress curvature and action-token entropy, compares short counterfactual branches under the same prefix, and combines a local DPO-style preference loss with trajectory-level GRPO.
 
 This release is organized from the existing server working tree. The primary training entry is **`dccp/run_train_dccp_full.sh`**. Current ready-to-configure assets and launch defaults target MimicGen Coffee. Model weights and full demonstration datasets are supplied separately.
 

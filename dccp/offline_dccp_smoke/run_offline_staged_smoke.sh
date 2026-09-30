@@ -26,7 +26,7 @@ cat <<EOF
   conda activate vlm_reward
   CUDA_VISIBLE_DEVICES=0 bash reward_model/lrm_server/start_progress_server.sh
 
-然后在当前 wmpo_env 终端运行阶段 2：
+然后在当前 dccp_env 终端运行阶段 2：
 
   python offline_dccp_smoke/score_artifact_with_progress_lrm.py \\
     --artifact "$ARTIFACT" \\

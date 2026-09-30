@@ -3,7 +3,7 @@ set -euo pipefail
 umask 002
 
 AUDIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PYTHON_BIN="${WMPO_PYTHON:-/path/to/conda_envs/wmpo_env/bin/python}"
+PYTHON_BIN="${DCCP_PYTHON:-python}"
 CONFIG="${AUDIT_CONFIG:-${AUDIT_ROOT}/configs/coffee_one_traj_v2.yaml}"
 RUN_DIR="$("${PYTHON_BIN}" "${AUDIT_ROOT}/scripts/07_run_to_completion.py" \
   --config "${CONFIG}" --print-run-dir)"

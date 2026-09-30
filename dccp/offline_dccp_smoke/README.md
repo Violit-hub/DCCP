@@ -1,6 +1,6 @@
 # DCCP 离线分阶段 Smoke
 
-这个目录放 **独立验证脚本**，不修改 WMPO / verl 主训练流程。目标是在单卡显存不够时，把原本在线同时占显存的流程拆开：
+这个目录放 **独立验证脚本**，不修改 DCCP / verl 主训练流程。目标是在单卡显存不够时，把原本在线同时占显存的流程拆开：
 
 ```text
 在线 full smoke 当前会同时占用：
@@ -40,7 +40,7 @@ policy context tensors
 
 ```bash
 cd /path/to/DCCP/dccp
-conda activate wmpo_env
+conda activate dccp_env
 python offline_dccp_smoke/make_toy_branch_artifact.py \
   --output /tmp/dccp_offline/artifact.pt
 ```
@@ -55,11 +55,11 @@ conda activate vlm_reward
 CUDA_VISIBLE_DEVICES=0 bash reward_model/lrm_server/start_progress_server.sh
 ```
 
-确认 `/progress` 可访问后，在 `wmpo_env` 终端打分：
+确认 `/progress` 可访问后，在 `dccp_env` 终端打分：
 
 ```bash
 cd /path/to/DCCP/dccp
-conda activate wmpo_env
+conda activate dccp_env
 python offline_dccp_smoke/score_artifact_with_progress_lrm.py \
   --artifact /tmp/dccp_offline/artifact.pt \
   --output /tmp/dccp_offline/pref_batch.pt \
@@ -76,7 +76,7 @@ python offline_dccp_smoke/score_artifact_with_progress_lrm.py \
 
 ```bash
 cd /path/to/DCCP/dccp
-conda activate wmpo_env
+conda activate dccp_env
 python offline_dccp_smoke/check_pref_loss_artifact.py \
   --pref-batch /tmp/dccp_offline/pref_batch.pt \
   --use-ref-gap false

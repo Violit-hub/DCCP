@@ -3,7 +3,7 @@ set -euo pipefail
 umask 002
 
 AUDIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PYTHON_BIN="${WMPO_PYTHON:-/path/to/conda_envs/wmpo_env/bin/python}"
+PYTHON_BIN="${DCCP_PYTHON:-python}"
 CONFIG="${AUDIT_CONFIG:-${AUDIT_ROOT}/configs/coffee_fixed_oracle_s3_s6_25seeds_v1.yaml}"
 SOURCE_RUN="${STABILITY_SOURCE_RUN:-/path/to/DCCP/dccp/outputs/state_selection_audit/coffee_one_traj_v2}"
 PREPARER="${AUDIT_ROOT}/scripts/08_prepare_fixed_seed_stability.py"

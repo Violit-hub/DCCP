@@ -2442,12 +2442,12 @@
   {
     "path": "dccp/experiments/branch_validity_audit/README.md",
     "bytes": 5521,
-    "sha256": "14a5ae3ad5ec1d14b22d2c64c3b0af03a142f523fe355e0268f4e202275be92b"
+    "sha256": "75840049d3f90378aa2ce917bce226ee02b25a6df36c03dc305a9fe83df3c536"
   },
   {
     "path": "dccp/experiments/branch_validity_audit/run_coffee.sh",
-    "bytes": 1901,
-    "sha256": "4c1f90f99648d95d54d86eeebf9452f8ae4e646cf8e02d72afbda9b806de4867"
+    "bytes": 1868,
+    "sha256": "ad77fd8d430823d88da4622ef56dde5368da729211a9dd193cd93581b84f61ab"
   },
   {
     "path": "dccp/experiments/branch_validity_audit/scripts/00_validate_setup.py",
@@ -2521,28 +2521,28 @@
   },
   {
     "path": "dccp/experiments/state_selection_audit/configs/coffee_fixed_oracle_s3_s6_25seeds_v1.yaml",
-    "bytes": 2040,
-    "sha256": "436991a21e6d29ae020ea0db59042b3964efde3e0c63a0a995189328782c07fa"
+    "bytes": 2045,
+    "sha256": "2d3387864fd3296bc5d7dd7e1ca0fdbd7051dfd2513828607c4fb322235900b1"
   },
   {
     "path": "dccp/experiments/state_selection_audit/configs/coffee_one_traj.yaml",
-    "bytes": 1623,
-    "sha256": "efc36774270a065f395d83aa7deaaf5ac14eef1b12919f1226e9499e81023865"
+    "bytes": 1628,
+    "sha256": "2a449406b9cf5e05177ff587f4c56982c7bd9a4f7d00effd030cf3dff199da82"
   },
   {
     "path": "dccp/experiments/state_selection_audit/configs/coffee_one_traj_v2.yaml",
-    "bytes": 1628,
-    "sha256": "02d77d4bd50d1021be040ab3e9c7de01beda2ff4ff261f054f732059492fce78"
+    "bytes": 1633,
+    "sha256": "fd5d39b9ce24baebd58503d6748ab933042bb0dae825c2452246b1a75111e98e"
   },
   {
     "path": "dccp/experiments/state_selection_audit/configs/coffee_smoke.yaml",
-    "bytes": 1480,
-    "sha256": "704eace0847a2e4cd8c6db1708d8fe5636189238964b8b988af1fd6cbf73ea9a"
+    "bytes": 1485,
+    "sha256": "92f6934e504277f63669e4605774628d0e3ee3302cc39eaf7e761c07e6319a21"
   },
   {
     "path": "dccp/experiments/state_selection_audit/configs/coffee_tiny.yaml",
-    "bytes": 1432,
-    "sha256": "bf703b13e686aaf0fed0da8a9b09d8e2ecfab25493139fcbf99bf76e28cdae65"
+    "bytes": 1437,
+    "sha256": "e67307eed7c9485782d9f9074de5b39294681e53ecbc6927e1f438fdb5e72452"
   },
   {
     "path": "dccp/experiments/state_selection_audit/docs/EXPERIMENT_PROTOCOL.md",
@@ -2551,28 +2551,28 @@
   },
   {
     "path": "dccp/experiments/state_selection_audit/README.md",
-    "bytes": 9858,
-    "sha256": "794c0ab12e637dc418678fb04dbd7e116c3e6224a35777c60098e84ad7265011"
+    "bytes": 9853,
+    "sha256": "9565092c2b113df7ee9b14e8b04fc6abaec418e3f6156898c3335ac81eb2628f"
   },
   {
     "path": "dccp/experiments/state_selection_audit/run_coffee_fixed_oracle_25seeds.sh",
-    "bytes": 3087,
-    "sha256": "7a677180d3357a1a3d1afbe8eb95be34414738e1a51872ffceb4e837f570d2af"
+    "bytes": 3054,
+    "sha256": "29fde23666cf8a382533b9bb46a4c69d6afdb60d917582902471c95b6da494da"
   },
   {
     "path": "dccp/experiments/state_selection_audit/run_coffee_one_traj_full.sh",
-    "bytes": 2150,
-    "sha256": "07ea89d24b8914ee4fe950dc5b7c16b9dccca942c050c6448e315a1c22457d45"
+    "bytes": 2117,
+    "sha256": "0e523de0c122feb5f8775e21c6a29f721374e6cfd3954f88d042e23f23db0e5c"
   },
   {
     "path": "dccp/experiments/state_selection_audit/run_coffee_one_traj_v2.sh",
-    "bytes": 2153,
-    "sha256": "95a74e4227de86f38b37bd0c433e645c6d6c3564748893745dcd2f3ffd93cf39"
+    "bytes": 2120,
+    "sha256": "20c2cc26ea375d968220a263129d09f75cb091900511c9a2b876f334dc2bb287"
   },
   {
     "path": "dccp/experiments/state_selection_audit/run_coffee_smoke.sh",
-    "bytes": 1917,
-    "sha256": "4fd99d256c01c2c0c36959b4c5dc2fc11f9eec8417f3e34e600de146af75270d"
+    "bytes": 1884,
+    "sha256": "08312c346d87cbb5b098f4f425b62770f3cb3818e66d3c3110f7731283bb6cd7"
   },
   {
     "path": "dccp/experiments/state_selection_audit/scripts/00_validate_setup.py",
@@ -2782,12 +2782,12 @@
   {
     "path": "dccp/offline_dccp_smoke/README.md",
     "bytes": 3513,
-    "sha256": "c55d1f6396c434aa2da1d78710cf8da3621f61dd76cc086f7522e9c5fe18e99f"
+    "sha256": "1466c9631c5a8881592fd57899248516cea4b4c1382ceb8463a8dae45e7f754c"
   },
   {
     "path": "dccp/offline_dccp_smoke/run_offline_staged_smoke.sh",
     "bytes": 1218,
-    "sha256": "ffbab33ec0e33e929549161638e4915e6720e821c39d3298e27a2f103a49e7bd"
+    "sha256": "7b6c2de4ba30fd767310d7973cceaba2251663d563e5b07eedab595b5fbdbbf7"
   },
   {
     "path": "dccp/offline_dccp_smoke/score_artifact_with_progress_lrm.py",
@@ -3876,8 +3876,8 @@
   },
   {
     "path": "dccp/verl/workers/fsdp_workers.py",
-    "bytes": 185548,
-    "sha256": "69f12ebc7f65bba29080f38a790467535a90e4effcde6a17188ac591805503da"
+    "bytes": 185521,
+    "sha256": "5f36dd9f6bf8c914a81a9ca4022d4971eeffa2ac3ae4540bec8b7e06b126278d"
   },
   {
     "path": "dccp/verl/workers/hybrid_engine/__init__.py",
@@ -3975,11 +3975,6 @@
     "sha256": "8082e67b52254e72e7e2bc698556157124a4f7da8588eb6d91b1d3ed9e41b626"
   },
   {
-    "path": "dccp/wmpo_verification/test_dccp_packed_pref_loss_fake.py",
-    "bytes": 5516,
-    "sha256": "5847e5d4b289452960bf9e1018efeec352343afca6aaba4703c82d425d27bc78"
-  },
-  {
     "path": "docs/environments/environment_lrm.json",
     "bytes": 243,
     "sha256": "26d1e904edeaae019a156acc710eacf7230ceaf56f1df78bc6e3a3ac20997571"
@@ -3996,8 +3991,8 @@
   },
   {
     "path": "docs/source_provenance.json",
-    "bytes": 2246,
-    "sha256": "e1be1e44812db6de4c2c83ca951135224b3cd2f4869e6bec9bad4dd101f4a692"
+    "bytes": 2253,
+    "sha256": "c082bb820ff0f86c5098dff0d69b0b0d80db568d9e7936b85b701653eabfe154"
   },
   {
     "path": "Large-Reward-Models/frame_000000.jpg",
@@ -4036,8 +4031,8 @@
   },
   {
     "path": "README.md",
-    "bytes": 4652,
-    "sha256": "3115e55acf74f41d7c01ba0b9ace0fe74829bb4294a9d5088b73fdd0a601a8fc"
+    "bytes": 4638,
+    "sha256": "a75e869e973a7ee78cc5ee7548c15f7980dc3074ee7f43e484bac94ee17d7c41"
   },
   {
     "path": "scripts/prepare_coffee.py",
@@ -4047,11 +4042,11 @@
   {
     "path": "THIRD_PARTY_NOTICES.md",
     "bytes": 1047,
-    "sha256": "ed60da2df34e7c793c44a1fe38ec16969f7a9a339871d408a681c4ac5e928697"
+    "sha256": "6fac42162cca9ee333d155f74399f8a28f49f43d560f0290861016108105d31b"
   },
   {
     "path": "VALIDATION.md",
-    "bytes": 354,
-    "sha256": "1641add5ad144ce7aa998ad7cce966e9e130ef15327a53bde9f5d52001f7fe79"
+    "bytes": 475,
+    "sha256": "fb252e1929aff669778fb13f6595ca1da639d1bdd4b758718132337472152362"
   }
 ]

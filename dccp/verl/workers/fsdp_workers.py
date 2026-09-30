@@ -780,7 +780,7 @@ class RobWMActorRolloutRefWorker(Worker):
             )
 
             # DCCP 使用 LRM server 提供 completion/progress 打分
-            # 因此在 scorer.type=lrm 时，不再强制加载旧 WMPO / recovery-zero 的 VideoMAE reward model
+            # 因此在 scorer.type=lrm 时，不再强制加载旧的 VideoMAE reward model
             rollout_scorer_cfg = self.config.rollout.get("scorer", {})
             rollout_scorer_type = str(rollout_scorer_cfg.get("type", "")).lower()
             build_legacy_reward_model = bool(self.config.wm.get("build_legacy_reward_model", False))
@@ -1625,7 +1625,7 @@ class RobWMActorRolloutRefWorker(Worker):
 
     @register(dispatch_mode=Dispatch.ONE_TO_ALL)
     def init_model(self):
-        # DCCP/WMPO 的 world model 只应该由 rollout worker 持有
+        # DCCP 的 world model 只应该由 rollout worker 持有
         # ref worker 只计算 reference logprob，不需要 world model
         # actor-only worker 只更新 policy，也不需要 world model
         # 如果所有 worker 都加载 world model，单卡 smoke test 会出现重复显存占用
