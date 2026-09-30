@@ -4031,8 +4031,8 @@
   },
   {
     "path": "README.md",
-    "bytes": 4638,
-    "sha256": "a75e869e973a7ee78cc5ee7548c15f7980dc3074ee7f43e484bac94ee17d7c41"
+    "bytes": 4571,
+    "sha256": "b8f3a3e7cc49ea9a75b11c3e2ae732c14f6d6aa0734be729df56ca713e2f96b0"
   },
   {
     "path": "scripts/prepare_coffee.py",
@@ -4043,10 +4043,5 @@
     "path": "THIRD_PARTY_NOTICES.md",
     "bytes": 1047,
     "sha256": "6fac42162cca9ee333d155f74399f8a28f49f43d560f0290861016108105d31b"
-  },
-  {
-    "path": "VALIDATION.md",
-    "bytes": 475,
-    "sha256": "fb252e1929aff669778fb13f6595ca1da639d1bdd4b758718132337472152362"
   }
 ]

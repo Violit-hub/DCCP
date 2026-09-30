@@ -77,7 +77,7 @@ Retained evaluation code includes the OpenVLA-OFT LIBERO evaluator and the Coffe
 
 ## Release status
 
-See [VALIDATION.md](VALIDATION.md) for checks run on this package. Full GPU training and the complete paper benchmark results have not been rerun during packaging. Custom LIBERO-BDDL task assets, paper-specific checkpoints and full multi-task experiment settings still need to be supplied for complete paper reproduction.
+Full GPU training and the complete paper benchmark results have not been rerun during packaging. Custom LIBERO-BDDL task assets, paper-specific checkpoints and full multi-task experiment settings still need to be supplied for complete paper reproduction.
 
 Existing Apache-2.0 and MIT notices are retained. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for component scope. Add the final paper citation after the author details are settled.
 
